@@ -1,0 +1,12 @@
+# Ignorar entornos virtuales
+.venv
+.venv*/
+__pycache__/
+
+# Archivos sensibles
+.env
+*.env
+
+# Archivos que NO deben ir dentro del contenedor
+.git
+.gitignore
