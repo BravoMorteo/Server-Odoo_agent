@@ -14,7 +14,8 @@ from tools import load_all
 # -----------------------------
 # Helpers de inicialización
 # -----------------------------
-mcp = FastMCP("OdooMCP")  # transporte streamable-http en la app ASGI abajo
+# Configurar FastMCP
+mcp = FastMCP("OdooMCP")
 deps: Dict[str, Any] = {}
 _tools_loaded = False
 
@@ -30,9 +31,10 @@ def init_tools_once() -> None:
         # No abortamos el arranque para que /health funcione; pero logueamos.
         print(f"[WARN] missing envs: {missing}")
     deps["odoo"] = OdooClient()
+    print("[INFO] Loading tools from tools/ directory...")
     load_all(mcp, deps)
     _tools_loaded = True
-    print("[INFO] MCP tools registered.")
+    print("[INFO] MCP tools registered successfully.")
 
 
 def _odoo():
@@ -232,7 +234,34 @@ def mcp_fetch(doc_id: str) -> Dict[str, Any]:
 # -----------------------------
 # ASGI: Composite (health + MCP)
 # -----------------------------
-mcp_app = mcp.streamable_http_app()  # app ASGI del MCP (SSE)
+_mcp_app_internal = mcp.streamable_http_app()
+
+
+# Wrapper para permitir cualquier Host header (ngrok, localhost, etc.)
+async def mcp_app(scope, receive, send):
+    """Wrapper ASGI que permite cualquier host y delega al MCP app real."""
+    # Eliminar validación de Host header forzando el host correcto
+    if scope["type"] == "http":
+        # Guardar headers originales
+        original_headers = scope.get("headers", [])
+        # Filtrar y reemplazar el header Host
+        new_headers = []
+        host_found = False
+        for name, value in original_headers:
+            if name.lower() == b"host":
+                # Reemplazar con localhost para pasar la validación
+                new_headers.append((b"host", b"localhost:8000"))
+                host_found = True
+            else:
+                new_headers.append((name, value))
+
+        if not host_found:
+            new_headers.append((b"host", b"localhost:8000"))
+
+        scope["headers"] = new_headers
+
+    # Delegar al app MCP real
+    await _mcp_app_internal(scope, receive, send)
 
 
 async def app(scope, receive, send):

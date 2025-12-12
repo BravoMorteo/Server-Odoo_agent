@@ -118,6 +118,27 @@ https://xxxxx.us-east-1.awsapprunner.com
 
 ## 🧠 Herramientas MCP disponibles
 
+### 🌍 Ambientes: Producción vs Desarrollo
+
+Este servidor MCP soporta **dos ambientes diferentes**:
+
+#### **PRODUCCIÓN** (Solo Lectura)
+- **Herramientas**: `list_projects`, `list_tasks`, `get_task`, `list_users`, `list_sales`, `get_sale`, `search`, `fetch`
+- **Propósito**: Consultar datos reales sin modificarlos
+- **Variables**: `ODOO_URL`, `ODOO_DB`, `ODOO_LOGIN`, `ODOO_API_KEY`
+
+#### **DESARROLLO** (Lectura y Escritura) 🆕
+- **URL**: https://pegasuscontrol-dev18-25468489.dev.odoo.com
+- **Herramientas**: `dev_create_sale`, `dev_create_sale_line`, `dev_update_sale`, `dev_read_sale`
+- **Propósito**: Crear y modificar órdenes de venta de prueba
+- **Variables**: `DEV_ODOO_URL`, `DEV_ODOO_DB`, `DEV_ODOO_LOGIN`, `DEV_ODOO_API_KEY`
+
+> 📖 **Ver ejemplos completos en**: [EJEMPLOS_SALES.md](EJEMPLOS_SALES.md)
+
+---
+
+### 📚 Herramientas de PRODUCCIÓN (Solo Lectura)
+
 ### 🔹 `list_projects`
 
 Lista proyectos desde Odoo con filtros opcionales.
@@ -157,6 +178,49 @@ Lista tareas filtradas por proyecto, usuario o nombre de usuario.
 {
   "tool": "list_tasks",
   "arguments": { "assigned_to_name": "Julio", "limit": 5 }
+}
+```
+
+---
+
+### 🔹 `list_sales` 🆕
+
+Lista órdenes de venta desde Odoo con filtros opcionales.
+
+**Argumentos:**
+
+* `partner_id`: id del cliente (res.partner)
+* `user_id`: id del vendedor (res.users)
+* `state`: estado de la orden ('draft', 'sent', 'sale', 'done', 'cancel')
+* `q`: texto parcial para búsqueda por nombre/referencia
+* `limit`: límite de resultados
+
+**Ejemplo:**
+
+```json
+{
+  "tool": "list_sales",
+  "arguments": { "state": "sale", "limit": 10 }
+}
+```
+
+---
+
+### 🔹 `get_sale` 🆕
+
+Obtiene detalles completos de una orden de venta por ID.
+
+**Argumentos:**
+
+* `sale_id`: id de la orden de venta
+* `include_lines`: True/False para incluir líneas de la orden
+
+**Ejemplo:**
+
+```json
+{
+  "tool": "get_sale",
+  "arguments": { "sale_id": 123, "include_lines": true }
 }
 ```
 
@@ -214,15 +278,197 @@ Devuelve el contenido completo de un documento (`project:<id>` o `task:<id>`).
 
 ---
 
+### 🛠️ Herramientas de DESARROLLO (Lectura y Escritura) 🆕
+
+Estas herramientas permiten **crear y modificar** órdenes de venta en el ambiente de desarrollo.
+
+### 🔸 `dev_create_sale`
+
+Crea una nueva orden de venta en el ambiente de desarrollo.
+
+**Argumentos:**
+* `partner_id` (int, requerido): ID del cliente (res.partner)
+* `user_id` (int, opcional): ID del vendedor
+* `date_order` (string, opcional): Fecha de la orden
+* `payment_term_id` (int, opcional): Términos de pago
+* `note` (string, opcional): Notas u observaciones
+
+**Ejemplo:**
+```json
+{
+  "tool": "dev_create_sale",
+  "arguments": {
+    "partner_id": 23,
+    "user_id": 5,
+    "note": "[TEST-DEV] Orden de prueba"
+  }
+}
+```
+
+---
+
+### 🔸 `dev_create_sale_line`
+
+Agrega una línea de producto a una orden de venta.
+
+**Argumentos:**
+* `order_id` (int, requerido): ID de la orden
+* `product_id` (int, requerido): ID del producto
+* `product_uom_qty` (float, opcional): Cantidad (default: 1.0)
+* `price_unit` (float, opcional): Precio unitario
+* `name` (string, opcional): Descripción del producto
+
+**Ejemplo:**
+```json
+{
+  "tool": "dev_create_sale_line",
+  "arguments": {
+    "order_id": 145,
+    "product_id": 12,
+    "product_uom_qty": 10.0,
+    "price_unit": 500.00
+  }
+}
+```
+
+---
+
+### 🔸 `dev_update_sale`
+
+Actualiza una orden de venta existente en desarrollo.
+
+**Argumentos:**
+* `sale_id` (int, requerido): ID de la orden
+* `values` (dict, requerido): Campos a actualizar
+
+**Ejemplo:**
+```json
+{
+  "tool": "dev_update_sale",
+  "arguments": {
+    "sale_id": 145,
+    "values": {"note": "Orden actualizada"}
+  }
+}
+```
+
+---
+
+### 🔸 `dev_read_sale`
+
+Lee una orden de venta del ambiente de desarrollo.
+
+**Argumentos:**
+* `sale_id` (int, requerido): ID de la orden
+* `fields` (list, opcional): Campos a leer
+
+**Ejemplo:**
+```json
+{
+  "tool": "dev_read_sale",
+  "arguments": {
+    "sale_id": 145,
+    "fields": ["name", "partner_id", "amount_total"]
+  }
+}
+```
+
+---
+
+## 🔧 Variables de entorno
+      "phone": "+34 912345678"
+    }
+  }
+}
+```
+
+---
+
+### 🔸 `dev_update_record`
+
+Actualiza un registro existente en desarrollo.
+
+**Argumentos:**
+* `model` (string, requerido): Nombre del modelo
+* `record_id` (int, requerido): ID del registro
+* `values` (dict, requerido): Campos a actualizar
+
+**Ejemplo:**
+```json
+{
+  "tool": "dev_update_record",
+  "arguments": {
+    "model": "project.task",
+    "record_id": 456,
+    "values": {"priority": "1"}
+  }
+}
+```
+
+---
+
+### 🔸 `dev_read_record`
+
+Lee un registro del ambiente de desarrollo.
+
+**Argumentos:**
+* `model` (string, requerido): Nombre del modelo
+* `record_id` (int, requerido): ID del registro
+* `fields` (list, opcional): Campos a leer
+
+**Ejemplo:**
+```json
+{
+  "tool": "dev_read_record",
+  "arguments": {
+    "model": "project.task",
+    "record_id": 456,
+    "fields": ["name", "priority", "user_id"]
+  }
+}
+```
+
+---
+
 ## 🔧 Variables de entorno
 
-| Variable    | Descripción                            |
-| ----------- | -------------------------------------- |
-| `ODOO_URL`  | URL base de Odoo                       |
-| `ODOO_DB`   | Nombre de la base de datos             |
-| `ODOO_USER` | Usuario con permisos de lectura        |
-| `ODOO_PASS` | Contraseña o API Key del usuario       |
-| `PORT`      | Puerto del servidor (por defecto 8000) |
+### Ambiente de Producción (Solo Lectura)
+
+| Variable       | Descripción                      |
+| -------------- | -------------------------------- |
+| `ODOO_URL`     | URL base de Odoo (producción)    |
+| `ODOO_DB`      | Nombre de la base de datos       |
+| `ODOO_LOGIN`   | Usuario con permisos de lectura  |
+| `ODOO_API_KEY` | API Key del usuario              |
+| `PORT`         | Puerto del servidor (default: 8000) |
+
+### Ambiente de Desarrollo (Lectura y Escritura) 🆕
+
+| Variable          | Descripción                           | Valor por defecto |
+| ----------------- | ------------------------------------- | ----------------- |
+| `DEV_ODOO_URL`    | URL de Odoo desarrollo                | https://pegasuscontrol-dev18-25468489.dev.odoo.com |
+| `DEV_ODOO_DB`     | Base de datos de desarrollo           | pegasuscontrol-dev18-25468489 |
+| `DEV_ODOO_LOGIN`  | Usuario del ambiente de desarrollo    | (requerido)       |
+| `DEV_ODOO_API_KEY`| API Key para desarrollo               | (requerido)       |
+
+**Ejemplo de archivo `.env`:**
+
+```bash
+# PRODUCCIÓN (Solo lectura)
+ODOO_URL=https://pegasuscontrols.odoo.sh
+ODOO_DB=pegasuscontrols-9900001
+ODOO_LOGIN=usuario@empresa.com
+ODOO_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
+
+# DESARROLLO (Lectura y escritura)
+DEV_ODOO_URL=https://pegasuscontrol-dev18-25468489.dev.odoo.com
+DEV_ODOO_DB=pegasuscontrol-dev18-25468489
+DEV_ODOO_LOGIN=dev_usuario@empresa.com
+DEV_ODOO_API_KEY=yyyyyyyyyyyyyyyyyyyyyyyy
+
+# Servidor
+PORT=8000
+```
 
 ---
 
